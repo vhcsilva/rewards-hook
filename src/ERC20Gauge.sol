@@ -234,8 +234,15 @@ contract ERC20Gauge is ERC721Enumerable, Ownable, ReentrancyGuard {
    */
   function earned(uint256 nftId) public view returns (uint256) {
     Lock memory lockForNft = _locksPerNft[nftId];
+
+    uint256 lockDuration = block.timestamp - lockForNft.lockTime; 
+
+    (, uint256 boostingFactorCalculated) = boostingFactor(lockDuration);
+
+    uint256 shares = (_locksPerNft[nftId].amount * boostingFactorCalculated) / BOOST_PRECISION;
+
     return
-      (lockForNft.shares * (rewardPerShare() - _nftsRewardPerSharePaid[nftId])) /
+      (shares * (rewardPerShare() - _nftsRewardPerSharePaid[nftId])) /
       PRECISION +
       _rewards[nftId];
   }

@@ -2,6 +2,7 @@
 pragma solidity ^0.8.24;
 
 import "forge-std/Test.sol";
+import {console2} from "forge-std/console2.sol";
 
 import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
 import {StateLibrary} from "@uniswap/v4-core/src/libraries/StateLibrary.sol";
@@ -92,7 +93,7 @@ contract PointsHookTest is Test, Fixtures {
     function test_RewardsHook_Liquidity() public {
       uint256 startingPoints = gauge.balanceOf(address(this));
 
-      console.log("startingPoints", startingPoints);
+      console2.log("startingPoints", startingPoints);
 
       uint128 liqToAdd = 100e18;
 
@@ -118,6 +119,25 @@ contract PointsHookTest is Test, Fixtures {
 
       uint256 endingPoints = gauge.balanceOf(address(this));
 
-      console.log("endingPoints", endingPoints);
+      console2.log("endingPoints", endingPoints);
+
+      skip(100 * 60 * 60);
+
+      uint256 earned0 = gauge.earned(0);
+      uint256 earned1 = gauge.earned(1);
+      uint256 earned2 = gauge.earned(2);
+
+      console2.log("earned0", earned0);
+      console2.log("earned1", earned1);
+      console2.log("earned2", earned2);
+
+      ERC20Gauge.Lock[] memory locks = gauge.locksForAddress(address(this));
+      for (uint256 i = 0; i < locks.length; i++) {
+          console.log("amount", locks[i].amount);
+          console.log("shares", locks[i].shares);
+          console.log("boostingFactor", locks[i].boostingFactor);
+          console.log("lockTime", locks[i].lockTime);
+          console.log("unlockTime", locks[i].unlockTime);
+      }
     }
 }
