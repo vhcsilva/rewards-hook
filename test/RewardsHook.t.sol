@@ -13,7 +13,7 @@ import {TickMath} from "@uniswap/v4-core/src/libraries/TickMath.sol";
 import {CurrencyLibrary, Currency} from "@uniswap/v4-core/src/types/Currency.sol";
 import {LiquidityAmounts} from "@uniswap/v4-core/test/utils/LiquidityAmounts.sol";
 import {IHooks} from "@uniswap/v4-core/src/interfaces/IHooks.sol";
-
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {EasyPosm} from "./utils/EasyPosm.sol";
 import {Fixtures} from "./utils/Fixtures.sol";
 import {RewardsHook} from "../src/RewardsHook.sol";
@@ -39,21 +39,21 @@ contract PointsHookTest is Test, Fixtures {
 
         deployAndApprovePosm(manager);
 
-        ERC20Gauge erc20Gauge = new ERC20Gauge("TKAI Rewards", "TKAIR",  address(this), address(this), address(currency1), address(currency1), 1, 24 * 60 * 60);
+        gauge = new ERC20Gauge("TKAI Rewards", "TKAIR",  address(this), address(this), IERC20(Currency.unwrap(currency0)), IERC20(Currency.unwrap(currency1)), 1, 24 * 60 * 60);
 
         // Deploy the hook to an address with the correct flags
         address flags = address(
             uint160(Hooks.AFTER_SWAP_FLAG | Hooks.AFTER_ADD_LIQUIDITY_FLAG) ^
                 (0x4444 << 144) // Namespace the hook to avoid collisions
         );
-        bytes memory constructorArgs = abi.encode(manager); //Add all the necessary constructor arguments from the hook
+        bytes memory constructorArgs = abi.encode(manager, gauge); //Add all the necessary constructor arguments from the hook
         deployCodeTo("RewardsHook.sol:RewardsHook", constructorArgs, flags);
         hook = RewardsHook(flags);
         gauge = hook.gauge();
 
         // Create the pool
         key = PoolKey(
-            Currency.wrap(address(0)),
+            currency0,
             currency1,
             3000,
             60,
@@ -90,6 +90,34 @@ contract PointsHookTest is Test, Fixtures {
     }
 
     function test_RewardsHook_Liquidity() public {
-        // [code here]
+      uint256 startingPoints = gauge.balanceOf(address(this));
+
+      console.log("startingPoints", startingPoints);
+
+      uint128 liqToAdd = 100e18;
+
+      (uint256 amount0, uint256 amount1) = LiquidityAmounts
+          .getAmountsForLiquidity(
+              SQRT_PRICE_1_1,
+              TickMath.getSqrtPriceAtTick(tickLower),
+              TickMath.getSqrtPriceAtTick(tickUpper),
+              liqToAdd
+          );
+
+      posm.mint(
+          key,
+          tickLower,
+          tickUpper,
+          liqToAdd,
+          amount0 + 1,
+          amount1 + 1,
+          address(this),
+          block.timestamp,
+          hook.getHookData(address(this))
+      );
+
+      uint256 endingPoints = gauge.balanceOf(address(this));
+
+      console.log("endingPoints", endingPoints);
     }
 }

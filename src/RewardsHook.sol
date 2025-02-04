@@ -83,7 +83,7 @@ contract RewardsHook is BaseHook, Ownable {
 
         address user = parseHookData(hookData);
 
-        uint256 stakingTokenAmount = uint256(int256(-delta.amount0()));
+        uint256 stakingTokenAmount = uint256(int256(-delta.amount1()));
 
         _gauge.deposit(user, stakingTokenAmount);
 
